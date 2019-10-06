@@ -1,0 +1,74 @@
+CHIP Mul{
+    IN a[16], b[16];
+    OUT out[16];
+
+    PARTS:
+	
+	// we will repeatadly shift left and "multiply" in each of
+	// b's digits using Mux
+	
+	Mux16(a=false,b=a,sel=b[0],out=row0);
+	ShiftLeft(in=a,out=aShift1);
+	
+	Mux16(a=false,b=aShift1,sel=b[1],out=row1);
+	ShiftLeft(in=aShift1,out=aShift2);
+	
+	Mux16(a=false,b=aShift2,sel=b[2],out=row2);
+	ShiftLeft(in=aShift2,out=aShift3);
+	
+	Mux16(a=false,b=aShift3,sel=b[3],out=row3);
+	ShiftLeft(in=aShift3,out=aShift4);
+	
+	Mux16(a=false,b=aShift4,sel=b[4],out=row4);
+	ShiftLeft(in=aShift4,out=aShift5);
+	
+	Mux16(a=false,b=aShift5,sel=b[5],out=row5);
+	ShiftLeft(in=aShift5,out=aShift6);
+	
+	Mux16(a=false,b=aShift6,sel=b[6],out=row6);
+	ShiftLeft(in=aShift6,out=aShift7);
+	
+	Mux16(a=false,b=aShift7,sel=b[7],out=row7);
+	ShiftLeft(in=aShift7,out=aShift8);
+	
+	Mux16(a=false,b=aShift8,sel=b[8],out=row8);
+	ShiftLeft(in=aShift8,out=aShift9);
+	
+	Mux16(a=false,b=aShift9,sel=b[9],out=row9);
+	ShiftLeft(in=aShift9,out=aShift10);
+	
+	Mux16(a=false,b=aShift10,sel=b[10],out=row10);
+	ShiftLeft(in=aShift10,out=aShift11);
+	
+	Mux16(a=false,b=aShift11,sel=b[11],out=row11);
+	ShiftLeft(in=aShift11,out=aShift12);
+	
+	Mux16(a=false,b=aShift12,sel=b[12],out=row12);
+	ShiftLeft(in=aShift12,out=aShift13);
+	
+	Mux16(a=false,b=aShift13,sel=b[13],out=row13);
+	ShiftLeft(in=aShift13,out=aShift14);
+	
+	Mux16(a=false,b=aShift14,sel=b[14],out=row14);
+	ShiftLeft(in=aShift14,out=aShift15);
+	
+	Mux16(a=false,b=aShift15,sel=b[15],out=row15);
+
+	
+	Add16(a=row0,b=row1,out=temp1);
+	Add16(a=temp1,b=row2,out=temp2);
+	Add16(a=temp2,b=row3,out=temp3);
+	Add16(a=temp3,b=row4,out=temp4);
+	Add16(a=temp4,b=row5,out=temp5);
+	Add16(a=temp5,b=row6,out=temp6);
+	Add16(a=temp6,b=row7,out=temp7);
+	Add16(a=temp7,b=row8,out=temp8);
+	Add16(a=temp8,b=row9,out=temp9);
+	Add16(a=temp9,b=row10,out=temp10);
+	Add16(a=temp10,b=row11,out=temp11);
+	Add16(a=temp11,b=row12,out=temp12);
+	Add16(a=temp12,b=row13,out=temp13);
+	Add16(a=temp13,b=row14,out=temp14);
+	Add16(a=temp14,b=row15,out=out);
+	
+}

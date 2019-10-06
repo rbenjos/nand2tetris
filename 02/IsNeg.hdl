@@ -1,0 +1,11 @@
+
+// we need an Or16Way in the ALU to check if a number is equal to 0 easily
+
+CHIP IsNeg {
+	IN in[16];
+	OUT out;
+	
+	PARTS:
+	And(a=in[15],b=true,out=out);
+
+	}
