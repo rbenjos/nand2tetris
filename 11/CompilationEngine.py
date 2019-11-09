@@ -4,12 +4,10 @@ class CompilationEngine:
     TYPES = ['int', 'char', 'boolean']
     STATEMENTS = {'do', 'let', 'if', 'while', 'return'}
     OPS = ['+', '-', '*', '/', '&', ',', '<', '>', '=']
-    CONSTANTS = ['integerConstant','stringConstant','keywordConstant']
 
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
-        self.out_file_name = tokenizer.getFileName()
-        self.output_file = open(self.out_file_name + '.xml', 'w')
+        self.output_file = open('temp', 'w')
         self.CLASSES = []
 
     def out(self, phrase):
@@ -18,8 +16,7 @@ class CompilationEngine:
         :param phrase:
         :return:
         """
-        print(phrase)
-        self.output_file.write(phrase+'\n')
+        self.output_file.write(phrase)
 
     def start(self, phrase):
         """
@@ -37,44 +34,19 @@ class CompilationEngine:
         """
         self.out("</" + phrase + ">")
 
-    def startr(self, phrase):
-        """
-
-        :param phrase:
-        :return:
-        """
-        return "<" + phrase + ">"
-
-    def endr(self, phrase):
-        """
-
-        :param phrase:
-        :return:
-        """
-        return "</" + phrase + ">"
-
     def bound(self, phrase, ter_type):
         """
-
+        
         :param phrase:
         :param ter_type:
         :return:
         """
-        final_phrase = self.startr(ter_type)+ phrase + self.endr(ter_type)
-        self.out(final_phrase)
+        self.start(ter_type)
+        self.out(phrase)
+        self.end(ter_type)
 
     def token(self):
-        return self.tokenizer.get_token()
-
-    def token_type(self):
-        return self.tokenizer.get_token_type()
-
-    def advance(self):
-        return self.tokenizer.advance()
-
-    def compile(self):
-        self.advance()
-        self.CompileClass()
+        return self.token()
 
     def CompileClass(self):
         """
@@ -85,34 +57,32 @@ class CompilationEngine:
         """
 
         # class keyword and name, start of body
+        self.tokenizer.advance()
         self.start('class')
 
         # class
-        self.bound(self.token(), 'keyword')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'keyword')
 
         # name
-        self.bound(self.token(), 'identifier')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'identifier')
 
         # {
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # now to declare all class variables
 
-        while self.token() in self.CLASS_VARIABLES:
+        token = self.tokenizer.advance()
+        while token in self.CLASS_VARIABLES:
             self.compileClassVarDec()
 
         # now to declare all methods
 
-        while self.token() in self.SUBROUTINE_TYPES:
+        token = self.tokenizer.advance()
+        while token in self.SUBROUTINE_TYPES:
             self.compileSubroutine()
 
         # }
-        self.bound(self.token(), 'symbol')
-        if (self.tokenizer.has_more_tokens()):
-            self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         self.end('class')
 
@@ -128,39 +98,27 @@ class CompilationEngine:
         self.start('classVarDec')
 
         # field? static?
-        self.bound(self.token(), 'keyword')
+        self.bound(self.tokenizer.advance(), 'keyword')
 
         self.tokenizer.advance()
-        # compile type
-        self.compileType()
-
-        # names
-        self.bound(self.token(), 'identifier')
-        self.tokenizer.advance()
-        while self.token() == ',':
-            self.bound(self.token(), 'symbol')
-            self.bound(self.tokenizer.advance(), 'identifier')
-            self.tokenizer.advance()
+        # var dec
 
         # ;
-        self.bound(self.token(), 'symbol')
+        self.bound(self.token(), 'identifier')
         self.end('classVarDec')
-        if self.tokenizer.has_more_tokens():
-            self.advance()
 
     def compileType(self):
-        """
-
-        :return:
-        """
         token = self.token()
         if token in self.TYPES:
             self.bound(token, 'keyword')
 
-        else:
+        elif token in self.CLASSES:
             self.bound(token, 'identifier')
 
-        self.advance()
+
+        else:
+            # todo: raise an exception i guess
+            pass
 
     def compileSubroutine(self):
         """
@@ -176,24 +134,19 @@ class CompilationEngine:
         self.start('subroutineDec')
 
         # function/method/constructor
-        self.bound(self.token(), 'keyword')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'keyword')
 
         # function return type
-        if self.token() == 'void':
+        self.tokenizer.advance()
+        if self.token() is 'void':
             self.bound(self.token(), 'keyword')
-            self.advance()
         else:
             self.compileType()
 
         # function variables
 
-        # name
-        self.bound(self.token(), 'identifier')
-        self.advance()
-
         # (
-        self.bound(self.token(), 'symbol')
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # parameter list
         self.tokenizer.advance()
@@ -201,7 +154,6 @@ class CompilationEngine:
 
         # )
         self.bound(self.token(), 'symbol')
-        self.advance()
 
         # subroutine body
         self.compileSubroutineBody()
@@ -216,7 +168,7 @@ class CompilationEngine:
         """
 
         # if there are no parameters, we should go back
-        if self.token() == ')':
+        if self.token() is ')':
             return
 
         else:
@@ -226,17 +178,13 @@ class CompilationEngine:
             self.tokenizer.advance()
             self.compileType()
             # name
-            self.bound(self.token(), 'identifier')
-            self.advance()
+            self.bound(self.tokenizer.advance(), 'identifier')
 
             # other parameters
 
-            while self.token() == ',':
+            while self.tokenizer.advance() is ',':
                 self.bound(self.token(), 'symbol')
-                self.advance()
-                self.compileType()
-                self.bound(self.token(), 'identifier')
-                self.advance()
+                self.bound(self.tokenizer.advance(), 'identifier')
 
             self.end('parameterList')
 
@@ -244,12 +192,10 @@ class CompilationEngine:
         self.start('subroutineBody')
 
         # {
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
-        while self.token() == 'var':
+        while self.tokenizer.advance() is 'var':
             self.bound(self.token(), 'keyword')
-            self.advance()
             self.compileVarDec()
 
         self.compileStatements()
@@ -266,22 +212,14 @@ class CompilationEngine:
         :return:
         """
         # type
-        self.compileType()
+        self.bound(self.compileType(), 'keyword')
 
         # name
-        self.bound(self.token(), 'identifier')
-        self.advance()
-
-        while self.token() == ',':
+        self.bound(self.tokenizer.advance(), 'identifier')
+        while self.token() is ',':
             self.bound(self.token(), 'symbol')
-            self.advance()
-            self.bound(self.token(), 'identifier')
+            self.bound(self.tokenizer.advance(), 'identifier')
             self.tokenizer.advance()
-
-        # ;
-        self.bound(self.token(), 'symbol')
-        if self.tokenizer.has_more_tokens():
-            self.advance()
 
     def compileStatements(self):
         """
@@ -291,7 +229,7 @@ class CompilationEngine:
 
         self.start('statements')
 
-        while self.token() in self.STATEMENTS:
+        while self.tokenizer.advance() in self.STATEMENTS:
             self.compileStatement()
 
         self.end('statements')
@@ -301,15 +239,15 @@ class CompilationEngine:
         compiles statement based on its keyword
         :return:
         """
-        if self.token() == 'do':
+        if self.token is 'do':
             self.compileDo()
-        elif self.token() == 'let':
+        elif self.token is 'let':
             self.compileLet()
-        elif self.token() == 'if':
+        elif self.token is 'if':
             self.compileIf()
-        elif self.token() == 'while':
+        elif self.token is 'while':
             self.compileWhile()
-        elif self.token() == 'return':
+        elif self.token is 'return':
             self.compileReturn()
 
     def compileDo(self):
@@ -322,17 +260,17 @@ class CompilationEngine:
 
         # do
         self.bound(self.token(), 'keyword')
-        self.tokenizer.advance()
 
         # call subroutine
+        self.tokenizer.advance()
         self.bound(self.token(), 'identifier')
         self.tokenizer.advance()
 
+        self.tokenizer.advance()
         self.compileSubroutineCall()
 
         # ;
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
         self.end('doStatement')
 
     def compileSubroutineCall(self):
@@ -345,23 +283,27 @@ class CompilationEngine:
 
         # ( or .
         # if .
-        if self.token() == '.':
+        if self.token() is '.':
             # .
             self.bound(self.token(), 'symbol')
-            self.advance()
             # name of subroutine
-            self.bound(self.token(), 'identifier')
-            self.advance()
-
-
-        # (
-        self.bound(self.token(), 'symbol')
-        # expression list
-        self.tokenizer.advance()
-        self.compileExpressionList()
-        # )
-        self.bound(self.token(), 'symbol')
-        self.advance()
+            self.bound(self.tokenizer.advance(), 'identifier')
+            # (
+            self.bound(self.token(), 'symbol')
+            # expression list
+            self.tokenizer.advance()
+            self.compileExpressionList()
+            # )
+            self.bound(self.tokenizer.advance(), 'symbol')
+        # if (
+        else:
+            # (
+            self.bound(self.token(), 'symbol')
+            # expression list
+            self.tokenizer.advance()
+            self.compileExpressionList()
+            # )
+            self.bound(self.tokenizer.advance(), 'symbol')
 
         self.end('subroutineCall')
 
@@ -376,32 +318,29 @@ class CompilationEngine:
 
         # let
         self.bound(self.token(), 'keyword')
-        self.advance()
 
         # varname
-        self.bound(self.token(), 'identifier')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'identifier')
 
         # might be an array, need to check that
-        if self.token() == '[':
+        if self.tokenizer.advance() is '[':
             # [
             self.bound(self.token(), 'symbol')
             self.tokenizer.advance()
             self.compileExpression()
             # ]
-            self.bound(self.token(), 'symbol')
+            self.bound(self.tokenizer.advance(), 'symbol')
             self.tokenizer.advance()
 
         # otherwise its a =
         self.bound(self.token(), 'symbol')
-        self.tokenizer.advance()
 
         # then an expression
+        self.tokenizer.advance()
         self.compileExpression()
 
         # ;
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
         self.end('letStatement')
 
     def compileWhile(self):
@@ -411,31 +350,27 @@ class CompilationEngine:
         """
         self.start('whileStatement')
         # while
-        self.bound(self.token(), 'keyword')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'keyword')
 
         # (
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # the condition expression
+        self.tokenizer.advance()
         self.compileExpression()
         # )
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # the body of while
 
         # {
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # statements
         self.compileStatements()
 
         # }
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         self.end('whileStatement')
 
@@ -447,16 +382,15 @@ class CompilationEngine:
         self.start('returnStatement')
         # return
         self.bound(self.token(), 'keyword')
-        self.tokenizer.advance()
 
         # expression (might be empty)
-        if self.token() != ';':
+        self.tokenizer.advance()
+        if self.token() is not ';':
             self.compileExpression()
+            self.tokenizer.advance()
 
         # ;
         self.bound(self.token(), 'symbol')
-        self.advance()
-
         self.end('returnStatement')
 
     def compileIf(self):
@@ -466,46 +400,40 @@ class CompilationEngine:
         """
         self.start('ifStatement')
         self.bound(self.token(), 'keyword')
-        self.advance()
 
         # (
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # the condition expression
+        self.tokenizer.advance()
         self.compileExpression()
         # )
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
+
         # the body of if
 
         # {
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # statements
         self.compileStatements()
 
         # }
-        self.bound(self.token(), 'symbol')
-        self.advance()
+        self.bound(self.tokenizer.advance(), 'symbol')
 
         # might be an else:
 
-        if self.token() == 'else':
+        if self.tokenizer.advance() is 'else':
             self.bound(self.token(), 'keyword')
-            self.advance()
-
             # {
-            self.bound(self.token(), 'symbol')
-            self.advance()
+            self.bound(self.tokenizer.advance(), 'symbol')
 
             # statements
             self.compileStatements()
 
             # }
-            self.bound(self.token(), 'symbol')
-            self.advance()
+            self.bound(self.tokenizer.advance(), 'symbol')
+            self.tokenizer.advance()
 
         self.end('ifStatement')
 
@@ -521,10 +449,11 @@ class CompilationEngine:
         self.compileTerm()
 
         # following terms and operators
-        while self.token() in self.OPS:
+        while self.tokenizer.advance() in self.OPS:
             self.bound(self.token(), 'symbol')
-            self.advance()
+            self.tokenizer.advance()
             self.compileTerm()
+            self.tokenizer.advance()
 
         self.end('expression')
 
@@ -534,45 +463,45 @@ class CompilationEngine:
         :return:
         """
         self.start('term')
-        token_type = self.tokenizer.get_token_type()
-        if token_type in self.CONSTANTS:
-            self.bound(self.token(), self.tokenizer.get_token_type())
-            self.advance()
+        self.tokenizer.advance()
+        token_type = self.tokenizer.getType()
+        if token_type is 'integerConstant' or \
+                'stringConstant' or \
+                'keywordConstant':
+            self.bound(self.token(), self.tokenizer.getType())
         # expression
         elif self.token() is '(':
             # (
             self.bound(self.token(), 'symbol')
-            self.advance()
             # thats an expression
+            self.tokenizer.advance()
             self.compileExpression()
             # )
-            self.bound(self.token(), 'symbol')
-            self.advance()
-
-        # unary operator and a term
+            self.bound(self.tokenizer.advance(), 'symbol')
+        # unary operator
         elif self.token() in ['-', '~']:
             self.bound(self.token(), 'symbol')
-            self.advance()
+            self.tokenizer.advance()
             self.compileTerm()
+
 
         # subroutine/array/variable
         elif token_type is 'identifier':
             # variable
             self.bound(self.token(), 'identifier')
-            self.advance()
+            self.tokenizer.advance()
             # subroutine
             if self.token() in ['(', '.']:
-
                 self.compileSubroutineCall()
             # array
             elif self.token() is '[':
-                # [
+                #[
                 self.bound(self.token(), 'symbol')
-                self.advance()
+                self.tokenizer.advance()
                 self.compileExpression()
                 # ]
-                self.bound(self.token(), 'symbol')
-                self.advance()
+                self.bound(self.tokenizer.advance(), 'symbol')
+                self.tokenizer.advance()
 
         self.end('term')
 
@@ -583,9 +512,10 @@ class CompilationEngine:
         """
         self.start('expressionList')
         self.compileExpression()
-        while self.token() is ',':
+        while self.tokenizer.advance() is ',':
             self.bound(self.token(), 'symbol')
             self.tokenizer.advance()
             self.compileExpression()
+            self.tokenizer.advance()
 
         self.end('expressionList')
