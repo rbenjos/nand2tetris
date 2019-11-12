@@ -1,0 +1,131 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/CPU.hdl
+
+/**
+ * The Hack CPU (Central Processing unit), consisting of an ALU,
+ * two registers named A and D, and a program counter named PC.
+ * The CPU is designed to fetch and execute instructions written in 
+ * the Hack machine language. In particular, functions as follows:
+ * Executes the inputted instruction according to the Hack machine 
+ * language specification. The D and A in the language specification
+ * refer to CPU-resident registers, while M refers to the external
+ * memory location addressed by A, i.e. to Memory[A]. The inM input 
+ * holds the value of this location. If the current instruction needs 
+ * to write a value to M, the value is placed in outM, the address 
+ * of the target location is placed in the addressM output, and the 
+ * writeM control bit is asserted. (When writeM==0, any value may 
+ * appear in outM). The outM and writeM outputs are combinational: 
+ * they are affected instantaneously by the execution of the current 
+ * instruction. The addressM and pc outputs are clocked: although they 
+ * are affected by the execution of the current instruction, they commit 
+ * to their new values only in the next time step. If reset==1 then the 
+ * CPU jumps to address 0 (i.e. pc is set to 0 in next time step) rather 
+ * than to the address resulting from executing the current instruction. 
+ */
+
+CHIP CpuMul {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+    // Put your code here:
+	
+	// first mux, only have to update its instruction from
+	// the ALU if its a c instruction that has something to
+	// do with the A address.
+	// if we look up the dest table it tells us that all
+	// dests that involve A reg ha d1 lit up. so we will check if
+	// instruction[5] which is d1 is lit up or not and if its
+	// a c instruction
+	
+	Not (in = instruction[15], out = AInstruction);
+	And(a = instruction[5], b = instruction[15], out = modifyA);
+	Mux16(a=instruction,b=ALUOut,sel=modifyA,out=ARegIn); 
+	
+	// ** A register **
+	// we should load it with a new value if its an A instruction
+	// or if the dest is a
+	
+	
+	Or(a=AInstruction , b= modifyA , out = loadA);
+	ARegister(in = ARegIn, load=loadA, out = insIn, out[0..14] = addressM); 
+	
+	// ** D register **
+	// we need to modify it if its a c instruction
+	// and if one of the dests are the d register
+	// meaning d2 = instruction[4] should be on
+	
+	And(a= instruction[15] ,b= instruction[4], out = modifyD);
+	DRegister(in=ALUOut,load= modifyD , out = Din); //
+	
+	// now for the second mux. do we want an address or some data?
+	// are we in the fetch part or the execute part of the cycle?
+	
+	// assuming its a c instruction, the "a" bit
+	// can tell us if we are fetching data or a c instruction
+	
+	Mux16(a=insIn,b=inM,sel=instruction[12],out=ALUIn); 
+	
+	ExtendAlu(x=Din,y=ALUIn, // inputs
+	instruction=instruction[6..14],
+	out=ALUOut , out = outM
+	,zr=zero,ng=negative); // outputs
+	
+	// if we have a jump we need to feed that into the load
+	// of the PC
+	// that happens either if there is a condition that has been
+	// met, or that there is an unconditional jump.
+	// lets set up the conditions:
+	
+	
+	Not (in=negative, out = notNeg);
+	Not (in =zero, out = notZero);
+	And(a= notNeg, b = notZero, out = positive);
+	
+	// equals zero (or GEQ or LEQ)
+	
+	And(a= instruction[1], b = zero, out = load1);
+	
+	// greater that zero
+	
+	And(a= instruction[0], b = positive, out = load2);
+	
+	// less than zero
+	
+	And(a= instruction[2], b = negative, out = load3);
+	
+	// either one of them is good , also a non conditional jump
+	
+	// non conditional jump
+	And (a=instruction[0],b=instruction[1],out=nonCon1);
+	And (a=nonCon1,b=instruction[2],out=nonConJump);
+	
+	Or(a=load1,b=load2,out=tempJump);
+	Or(a=tempJump,b=load3,out=tempJump2);
+	Or(a=tempJump2,b=nonConJump, out=jump);
+	
+	// it should also be a c instruction
+	
+	And (a = jump, b = instruction[15], out = loadToPc);
+	Not (in = loadToPc, out = incPc);
+	
+	PC(in=insIn,load=loadToPc,inc= incPc,reset=reset,out[0..14]=pc); // the pc
+	
+	
+	// **the writeM output**
+	// only if our dest is m, and this is a c instruction
+	
+	And (a=instruction[15],b=instruction[3], out = writeM);
+	
+}
