@@ -1,3 +1,4 @@
+# coding=utf-8
 class SymbolTable:
 
     def __init__(self):
@@ -13,7 +14,7 @@ class SymbolTable:
         Defines a new identifier of a given name, type,
         and kind and assigns it a running index.  STATIC
         and FIELD identifiers have a class scope, while
-        ARG and VARidentifiers have a subroutine scope.
+        ARG and VAR identifiers have a subroutine scope.
         :param i_name: var name - the key
         :param i_type: var type - first value
         :param i_kind: var kind - second value
@@ -34,6 +35,9 @@ class SymbolTable:
             self.static_counter += 1
         else:
             print("!!!problem!!!")
+
+    def contains(self, i_name):
+        return self.table.__contains__(i_name)
 
     def varCount(self, i_kind):
         """
@@ -80,7 +84,7 @@ class SymbolTable:
     def startsubroutine(self):
         """
         Starts a new subroutine scope (i.e. erases all names
-         in the previous subroutine’s scope.) 
+         in the previous subroutine’s scope.)
         :return: None
         """
         self.arg_counter = 0
@@ -124,7 +128,3 @@ if __name__ == "__main__":
 
     print(a.varCount("ARG"))
     print(a.varCount("STATIC"))
-
-
-
-

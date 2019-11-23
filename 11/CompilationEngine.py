@@ -1,14 +1,29 @@
+import re
+import symbolTable
+import VMWriter
+
+
 class CompilationEngine:
     CLASS_VARIABLES = ['static', 'field']
     SUBROUTINE_TYPES = ['constructor', 'method', 'function']
     TYPES = ['int', 'char', 'boolean']
     STATEMENTS = {'do', 'let', 'if', 'while', 'return'}
-    OPS = ['+', '-', '*', '/', '&', ',', '<', '>', '=']
+    BIN_OPS = ['+', '-', '&', '<', '>', '=','|']
+    CONSTANTS = ['integerConstant', 'stringConstant', 'keywordConstant']
 
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, output_name):
+        self.classTable = symbolTable.SymbolTable()
+        self.subRoutineTable = symbolTable.SymbolTable()
+        self.vm_writer = VMWriter.VMWriter(output_name)
         self.tokenizer = tokenizer
-        self.output_file = open('temp', 'w')
+        self.out_file_name = tokenizer.getFileName()
+        self.output_file = open(self.out_file_name + '.xml', 'w')
         self.CLASSES = []
+
+        self.class_name = None
+
+        self.if_label_counter = 0
+        self.while_label_counter = 0
 
     def out(self, phrase):
         """
@@ -16,7 +31,8 @@ class CompilationEngine:
         :param phrase:
         :return:
         """
-        self.output_file.write(phrase)
+        print(phrase)
+        self.output_file.write(phrase + '\n')
 
     def start(self, phrase):
         """
@@ -34,22 +50,48 @@ class CompilationEngine:
         """
         self.out("</" + phrase + ">")
 
+    def startr(self, phrase):
+        """
+
+        :param phrase:
+        :return:
+        """
+        return "<" + phrase + ">"
+
+    def endr(self, phrase):
+        """
+
+        :param phrase:
+        :return:
+        """
+        return "</" + phrase + ">"
+
     def bound(self, phrase, ter_type):
         """
-        
+
         :param phrase:
         :param ter_type:
         :return:
         """
-        self.start(ter_type)
-        self.out(phrase)
-        self.end(ter_type)
+        final_phrase = self.startr(ter_type) + phrase + self.endr(ter_type)
+        self.out(final_phrase)
 
     def token(self):
-        return self.token()
+        return self.tokenizer.get_token()
+
+    def token_type(self):
+        return self.tokenizer.get_token_type()
+
+    def advance(self):
+        return self.tokenizer.advance()
+
+    def compile(self):
+        self.advance()
+        self.CompileClass()
 
     def CompileClass(self):
         """
+        **Done!**
         how do we parse a class? we start with the keyword class,
         then the class name, brackets and within them all
         variables and then the functions/methods
@@ -57,37 +99,35 @@ class CompilationEngine:
         """
 
         # class keyword and name, start of body
-        self.tokenizer.advance()
-        self.start('class')
 
         # class
-        self.bound(self.tokenizer.advance(), 'keyword')
+        self.advance()
 
         # name
-        self.bound(self.tokenizer.advance(), 'identifier')
+        self.class_name = self.token()
+        self.advance()
 
         # {
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
         # now to declare all class variables
 
-        token = self.tokenizer.advance()
-        while token in self.CLASS_VARIABLES:
+        while self.token() in self.CLASS_VARIABLES:
             self.compileClassVarDec()
 
         # now to declare all methods
 
-        token = self.tokenizer.advance()
-        while token in self.SUBROUTINE_TYPES:
+        while self.token() in self.SUBROUTINE_TYPES:
             self.compileSubroutine()
 
         # }
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
-        self.end('class')
+        self.vm_writer.close()
 
     def compileClassVarDec(self):
         """
+        **Done!**
         a variable or variables start with static or field,
         then their type, then their name, and a ',' with more
         potential varnames. ends with a ';'
@@ -95,114 +135,159 @@ class CompilationEngine:
         """
 
         # class var dec
-        self.start('classVarDec')
 
         # field? static?
-        self.bound(self.tokenizer.advance(), 'keyword')
+        kind = self.token()
+        self.advance()
 
-        self.tokenizer.advance()
-        # var dec
+        # compile type
+        type_of_var = self.token()
+        self.advance()
+
+        # self.compileType()
+        # todo: find out if compiling an object dec is different then a primitive
+
+        # names
+        name = self.token()
+        self.classTable.define(name, type_of_var, kind)
+        self.advance()
+
+        while self.token() == ',':
+            # ,
+            self.advance()
+            # name
+            name = self.token()
+
+            self.classTable.define(name, type_of_var, kind)
+            self.advance()
 
         # ;
-        self.bound(self.token(), 'identifier')
-        self.end('classVarDec')
+        if self.tokenizer.has_more_tokens():
+            self.advance()
 
     def compileType(self):
+        """
+        DEPRECATED!!!
+        :return:
+        """
         token = self.token()
         if token in self.TYPES:
             self.bound(token, 'keyword')
 
-        elif token in self.CLASSES:
+        else:
             self.bound(token, 'identifier')
 
-
-        else:
-            # todo: raise an exception i guess
-            pass
+        self.advance()
 
     def compileSubroutine(self):
         """
+        **DONE!**
         a subroutine decleration start with a keyword of the following:
         ['constructor','function','method'], then the return type ['void',type]
         then the subroutine name, the parameter list within parentheses and
         then the subroutine body
-        todo: add compile subroutine body helper
         :return:
         """
 
         # subroutine
-        self.start('subroutineDec')
 
         # function/method/constructor
-        self.bound(self.tokenizer.advance(), 'keyword')
+        kind = self.token()
+        self.advance()
 
         # function return type
-        self.tokenizer.advance()
-        if self.token() is 'void':
-            self.bound(self.token(), 'keyword')
-        else:
-            self.compileType()
 
-        # function variables
+        type_of_sub = self.token()
+        self.advance()
+
+        # name
+        name = self.token()
+        self.advance()
 
         # (
-        self.bound(self.tokenizer.advance(), 'symbol')
 
         # parameter list
-        self.tokenizer.advance()
-        self.compileParameterList()
+        self.advance()
+        nvars = self.compileParameterList()
 
         # )
-        self.bound(self.token(), 'symbol')
+        self.advance()
 
         # subroutine body
-        self.compileSubroutineBody()
-
-        self.end('subroutineDec')
+        self.compileSubroutineBody(nvars, name)
 
     def compileParameterList(self):
         """
+        **done!**
         the parameter list is potentially empty, but has couples of types
         and varnames with ',' between them
         :return:
         """
+        nvars = 0
 
         # if there are no parameters, we should go back
-        if self.token() is ')':
-            return
+        if self.token() == ')':
+            return nvars
 
         else:
-            self.start('parameterList')
+
+            nvars += 1
 
             # type
-            self.tokenizer.advance()
-            self.compileType()
+
+            # self.compileType()
+            # todo: find out about object types
+
+            type_of_arg = self.token()
+            self.advance()
+
             # name
-            self.bound(self.tokenizer.advance(), 'identifier')
+            name = self.token()
+
+            self.subRoutineTable.define(name, type_of_arg, 'ARG')
+            self.advance()
 
             # other parameters
 
-            while self.tokenizer.advance() is ',':
-                self.bound(self.token(), 'symbol')
-                self.bound(self.tokenizer.advance(), 'identifier')
+            while self.token() == ',':
+                # ,
+                self.advance()
 
-            self.end('parameterList')
+                nvars += 1
 
-    def compileSubroutineBody(self):
-        self.start('subroutineBody')
+                # type
+                # self.compileType()
+                # todo: find out about object types
+                type_of_arg = self.token()
+                self.advance()
+
+                # name
+                name = self.token()
+                self.subRoutineTable.define(name, type_of_arg, 'ARG')
+                self.advance()
+
+            return nvars
+
+    def compileSubroutineBody(self, nvars, name):
+        """
+
+        :return:
+        """
 
         # {
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
-        while self.tokenizer.advance() is 'var':
-            self.bound(self.token(), 'keyword')
+        self.vm_writer.writeFunction(self.class_name + '.' + name, nvars)
+
+        while self.token() == 'var':
+            self.advance()
             self.compileVarDec()
 
         self.compileStatements()
 
         # }
-        self.bound(self.tokenizer.advance(), 'symbol')
-        self.end('subroutineBody')
+        # MotherFucker
+        self.advance()
 
     def compileVarDec(self):
         """
@@ -212,14 +297,33 @@ class CompilationEngine:
         :return:
         """
         # type
-        self.bound(self.compileType(), 'keyword')
+        type_of_var = self.token()
+        self.advance()
 
         # name
-        self.bound(self.tokenizer.advance(), 'identifier')
-        while self.token() is ',':
-            self.bound(self.token(), 'symbol')
-            self.bound(self.tokenizer.advance(), 'identifier')
-            self.tokenizer.advance()
+        name = self.token()
+        self.advance()
+
+        self.subRoutineTable.define(name, type_of_var, 'VAR')
+
+        while self.token() == ',':
+            self.advance()
+
+            # type
+            type_of_var = self.token()
+            self.advance()
+
+            # name
+            name = self.token()
+            self.advance()
+
+            self.subRoutineTable.define(name, type_of_var, 'VAR')
+
+            self.advance()
+
+        # ;
+        if self.tokenizer.has_more_tokens():
+            self.advance()
 
     def compileStatements(self):
         """
@@ -227,27 +331,23 @@ class CompilationEngine:
         :return:
         """
 
-        self.start('statements')
-
-        while self.tokenizer.advance() in self.STATEMENTS:
+        while self.token() in self.STATEMENTS:
             self.compileStatement()
-
-        self.end('statements')
 
     def compileStatement(self):
         """
         compiles statement based on its keyword
         :return:
         """
-        if self.token is 'do':
+        if self.token() == 'do':
             self.compileDo()
-        elif self.token is 'let':
+        elif self.token() == 'let':
             self.compileLet()
-        elif self.token is 'if':
+        elif self.token() == 'if':
             self.compileIf()
-        elif self.token is 'while':
+        elif self.token() == 'while':
             self.compileWhile()
-        elif self.token is 'return':
+        elif self.token() == 'return':
             self.compileReturn()
 
     def compileDo(self):
@@ -256,56 +356,79 @@ class CompilationEngine:
         :return:
         """
 
-        self.start('doStatement')
-
         # do
-        self.bound(self.token(), 'keyword')
+        self.advance()
+
+        name = self.token()
+        self.advance()
 
         # call subroutine
-        self.tokenizer.advance()
-        self.bound(self.token(), 'identifier')
-        self.tokenizer.advance()
+        self.compileSubroutineCall(name)
 
-        self.tokenizer.advance()
-        self.compileSubroutineCall()
+        # always void, pop to temp
+
+        self.vm_writer.writePop('temp', 0)
 
         # ;
-        self.bound(self.tokenizer.advance(), 'symbol')
-        self.end('doStatement')
+        self.advance()
 
-    def compileSubroutineCall(self):
+    def compileSubroutineCall(self,first_name):
         """
 
         :return:
         """
+        second_name = None
+        seg = None
+        index = None
+        counter = 0
 
         # handling after the first identifier , advanced after it
 
         # ( or .
         # if .
-        if self.token() is '.':
+        full_name = first_name
+        self.advance()
+
+        if self.token() == '.':
+            full_name += '.'
             # .
             self.bound(self.token(), 'symbol')
+            self.advance()
             # name of subroutine
-            self.bound(self.tokenizer.advance(), 'identifier')
-            # (
-            self.bound(self.token(), 'symbol')
-            # expression list
-            self.tokenizer.advance()
-            self.compileExpressionList()
-            # )
-            self.bound(self.tokenizer.advance(), 'symbol')
-        # if (
-        else:
-            # (
-            self.bound(self.token(), 'symbol')
-            # expression list
-            self.tokenizer.advance()
-            self.compileExpressionList()
-            # )
-            self.bound(self.tokenizer.advance(), 'symbol')
+            second_name = self.token()
+            full_name += second_name
+            self.bound(self.token(), 'identifier')
+            self.advance()
 
-        self.end('subroutineCall')
+        if second_name is not None:
+
+            if self.subRoutineTable.contains(first_name):
+                seg = self.subRoutineTable.kindOf(first_name)
+                index = self.subRoutineTable.indexOf(first_name)
+
+            elif self.classTable.contains(first_name):
+                seg = self.classTable.kindOf(first_name)
+                index = self.classTable.indexOf(first_name)
+
+            else:
+                print("identifier doesn't exist")
+
+            self.vm_writer.writePush(seg, index)
+            counter += 1
+
+        else:
+            full_name = self.class_name + '.' + first_name
+            self.vm_writer.writePush('pointer', 0)
+            counter += 1
+
+        # (
+        # expression list
+        self.advance()
+        counter += self.compileExpressionList()
+
+        # )
+        self.advance()
+        self.vm_writer.writeCall(full_name, counter)
 
     def compileLet(self):
         """
@@ -313,209 +436,304 @@ class CompilationEngine:
         its an array) then '=' and then another expression. ends with ';'
         :return:
         """
-
-        self.start('letStatement')
-
         # let
-        self.bound(self.token(), 'keyword')
+        self.advance()
 
         # varname
-        self.bound(self.tokenizer.advance(), 'identifier')
+
+        lastLineSeg = None
+        lastLineindex = None
+
+        isArray = False
+
+        # finding identifier in tables
+        if self.subRoutineTable.contains(self.token()):
+            lastLineSeg = self.subRoutineTable.kindOf(self.token())
+            lastLineindex = self.subRoutineTable.indexOf(self.token())
+
+        elif self.classTable.contains(self.token()):
+            lastLineSeg = self.classTable.kindOf(self.token())
+            lastLineindex = self.classTable.indexOf(self.token())
+        else:
+            print("identifier doesn't exist")
 
         # might be an array, need to check that
-        if self.tokenizer.advance() is '[':
+
+        self.advance()
+
+        if self.token() is '[':
+            isArray = True
             # [
-            self.bound(self.token(), 'symbol')
-            self.tokenizer.advance()
+
+            """pushing array base address"""
+            self.vm_writer.writePush(lastLineSeg, lastLineindex)
+            self.advance()
+
+            """push expression result"""  # todo - make sure expression leaves the result on the top of the stack
             self.compileExpression()
             # ]
-            self.bound(self.tokenizer.advance(), 'symbol')
-            self.tokenizer.advance()
+
+            """adding the base address and the expression result"""
+            self.advance()
+
+            self.vm_writer.WriteArithmetic("+",False)
 
         # otherwise its a =
-        self.bound(self.token(), 'symbol')
-
         # then an expression
-        self.tokenizer.advance()
+        self.advance()
+
+        """calculating the expression"""  # todo-make sure expression leaves the result on the top of the stack
         self.compileExpression()
 
+        """poping the result to temp 0 so we will get access to the previous addition result"""
+        self.vm_writer.writePop("temp", 0)
+
         # ;
-        self.bound(self.tokenizer.advance(), 'symbol')
-        self.end('letStatement')
+        """if the value should be put in an array then pop the expression result to that 0"""
+
+        if isArray:
+            """poping to pointer 1(that) so that 0 will hold the required array cell"""
+            self.vm_writer.writePop("pointer", 1)
+            self.vm_writer.writePush("temp", 0)
+            self.vm_writer.writePop("that", 0)
+        else:
+            """if not then pop the expression result to the given address"""
+            self.vm_writer.writePush("temp", 0)
+            self.vm_writer.writePop(lastLineSeg, lastLineindex)
 
     def compileWhile(self):
         """
-
         :return:
         """
-        self.start('whileStatement')
+        self.while_label_counter += 1
+        while_label = "While_Loop_" + str(self.while_label_counter)
+        end_while_label = "End_Of_while_" + str(self.while_label_counter)
         # while
-        self.bound(self.tokenizer.advance(), 'keyword')
+        self.advance()
 
         # (
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
         # the condition expression
-        self.tokenizer.advance()
+
+        self.vm_writer.WriteLabel(while_label)
+
+        """make sure the result is on the top of the stack"""
         self.compileExpression()
         # )
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.vm_writer.WriteArithmetic("~",True)
+        self.advance()
+
+        """creating if condition"""
+        self.vm_writer.WriteIf(end_while_label)
 
         # the body of while
 
         # {
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
         # statements
         self.compileStatements()
+        self.vm_writer.WriteGoto(while_label)
+        self.vm_writer.WriteLabel(end_while_label)
 
         # }
-        self.bound(self.tokenizer.advance(), 'symbol')
-
-        self.end('whileStatement')
+        self.advance()
 
     def compileReturn(self):
         """
-
         :return:
         """
-        self.start('returnStatement')
         # return
-        self.bound(self.token(), 'keyword')
+        self.advance()
 
         # expression (might be empty)
-        self.tokenizer.advance()
+
         if self.token() is not ';':
             self.compileExpression()
-            self.tokenizer.advance()
+
+        else:
+            self.vm_writer.writePush("constant", 0)
+        self.vm_writer.writeReturn()
 
         # ;
-        self.bound(self.token(), 'symbol')
-        self.end('returnStatement')
+        self.advance()
 
     def compileIf(self):
         """
-
         :return:
         """
-        self.start('ifStatement')
-        self.bound(self.token(), 'keyword')
+
+        # if
+        self.advance()
+
+        self.if_label_counter += 1
+        end_if_label = "EndIf_" + str(self.if_label_counter)
 
         # (
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
         # the condition expression
         self.tokenizer.advance()
+        """expression result is on the top of the stack"""
         self.compileExpression()
+
+        """negating the top"""
+        self.vm_writer.WriteArithmetic("~",True)
         # )
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
+
+        """if true - skip condition statements"""
+        self.vm_writer.WriteIf(end_if_label)
 
         # the body of if
 
         # {
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
         # statements
         self.compileStatements()
 
         # }
-        self.bound(self.tokenizer.advance(), 'symbol')
+        self.advance()
 
         # might be an else:
 
-        if self.tokenizer.advance() is 'else':
-            self.bound(self.token(), 'keyword')
+        if self.token() is 'else':
+            end_else = "Else_" + str(self.if_label_counter)
+            self.vm_writer.WriteGoto(end_else)
+            self.vm_writer.WriteLabel(end_if_label)
+
+            self.advance()
             # {
-            self.bound(self.tokenizer.advance(), 'symbol')
+            self.advance()
 
             # statements
             self.compileStatements()
 
-            # }
-            self.bound(self.tokenizer.advance(), 'symbol')
-            self.tokenizer.advance()
+            self.vm_writer.WriteLabel(end_else)
 
-        self.end('ifStatement')
+            # }
+            self.advance()
+        else:
+            self.vm_writer.WriteLabel(end_if_label)
 
     def compileExpression(self):
         """
+        ** done!! **
         an expression is a term, followed by couples of operators and more
         terms
         :return:
         """
-        self.start('expression')
 
         # first term
         self.compileTerm()
 
         # following terms and operators
-        while self.tokenizer.advance() in self.OPS:
-            self.bound(self.token(), 'symbol')
-            self.tokenizer.advance()
+        operator = self.token()
+        if operator in self.BIN_OPS:
+            self.advance()
             self.compileTerm()
-            self.tokenizer.advance()
+            self.vm_writer.WriteArithmetic(operator,False)
 
-        self.end('expression')
+        # writing the vm code for the operator
+
 
     def compileTerm(self):
         """
 
         :return:
         """
-        self.start('term')
-        self.tokenizer.advance()
-        token_type = self.tokenizer.getType()
-        if token_type is 'integerConstant' or \
-                'stringConstant' or \
-                'keywordConstant':
-            self.bound(self.token(), self.tokenizer.getType())
+        token_type = self.tokenizer.get_token_type()
+        if token_type in self.CONSTANTS:
+            self.vm_writer.writePush('constant',int(self.token()))
+            self.advance()
+
         # expression
         elif self.token() is '(':
             # (
-            self.bound(self.token(), 'symbol')
-            # thats an expression
-            self.tokenizer.advance()
-            self.compileExpression()
-            # )
-            self.bound(self.tokenizer.advance(), 'symbol')
-        # unary operator
-        elif self.token() in ['-', '~']:
-            self.bound(self.token(), 'symbol')
-            self.tokenizer.advance()
-            self.compileTerm()
+            self.advance()
 
+            # thats an expression
+            self.compileExpression()
+
+            # )
+            self.advance()
+
+        # unary operator and a term
+        elif self.token() in ['-', '~']:
+            operator = self.token()
+            self.advance()
+            self.compileTerm()
+            self.vm_writer.WriteArithmetic(operator,True)
 
         # subroutine/array/variable
         elif token_type is 'identifier':
+            name = self.token()
+            lastLineSeg = None
+            lastLineindex = None
+
+            # finding identifier in tables
+            if self.subRoutineTable.contains(name):
+                lastLineSeg = self.subRoutineTable.kindOf(name)
+                lastLineindex = self.subRoutineTable.indexOf(name)
+
+            elif self.classTable.contains(name):
+                lastLineSeg = self.classTable.kindOf(name)
+                lastLineindex = self.classTable.indexOf(name)
+            else:
+                print("identifier doesn't exist")
+
             # variable
-            self.bound(self.token(), 'identifier')
-            self.tokenizer.advance()
+            self.advance()
             # subroutine
+
             if self.token() in ['(', '.']:
-                self.compileSubroutineCall()
+                self.compileSubroutineCall(name)
             # array
             elif self.token() is '[':
-                #[
-                self.bound(self.token(), 'symbol')
-                self.tokenizer.advance()
+                # [
+                self.advance()
+
+                """pushing array base address"""
+                self.vm_writer.writePush(lastLineSeg, lastLineindex)
+
+                """push expression result"""  # todo - make sure expression leaves the result on the top of the stack
                 self.compileExpression()
                 # ]
-                self.bound(self.tokenizer.advance(), 'symbol')
-                self.tokenizer.advance()
 
-        self.end('term')
+                """adding the base address and the expression result"""
+                self.advance()
+
+                self.vm_writer.WriteArithmetic("+",False)
+
+                self.vm_writer.writePop("pointer", 1)
+                self.vm_writer.writePush("that", 0)
+            else:
+                # just a variable
+                self.vm_writer.writePush(lastLineSeg, lastLineindex)
+
 
     def compileExpressionList(self):
         """
-
+        todo: might need to add a counter and return as this
+        todo: tells the subroutine the number of arguments called
+        todo: easily
         :return:
         """
-        self.start('expressionList')
-        self.compileExpression()
-        while self.tokenizer.advance() is ',':
-            self.bound(self.token(), 'symbol')
-            self.tokenizer.advance()
-            self.compileExpression()
-            self.tokenizer.advance()
+        counter = 0
 
-        self.end('expressionList')
+        if self.token() == ')':
+            return counter
+
+        self.compileExpression()
+        counter += 1
+
+        while self.token() is ',':
+            # ,
+            self.advance()
+            self.compileExpression()
+            counter += 1
+
+        self.advance()
+        return counter
