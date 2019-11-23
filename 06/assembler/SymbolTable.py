@@ -1,6 +1,13 @@
 
 class SymbolTable(object):
+    """
+    wrapper class for the symbol table
+    """
+
     def __init__(self):
+        """
+        sets up a symbol table
+        """
         self.symbolTable = \
             {
                 # first the predefined ones
@@ -19,17 +26,38 @@ class SymbolTable(object):
         self.counter = 16
 
     def contains(self,key):
+        """
+
+        :param key: the key of the symbol
+        :return: true if the symbol table contains that key, false if not
+        """
         return key in self.symbolTable
 
     def get(self,key):
+        """
+
+        :param key: the key of that symbol
+        :return: the value of that symbol
+        """
         return self.symbolTable[key]
 
     def create_var(self,key):
+        """
+         creates a new variable in the symbol table
+        :param key: the key of the new variable
+        :return: its address in the code
+        """
         self.symbolTable[key] = self.counter
         self.counter += 1
         return self.symbolTable[key]
 
     def create_label(self,key,val):
+        """
+        creates a new label in the symbol table
+        :param key: the name of the label
+        :param val: its place / address in the code
+        :return:
+        """
         self.symbolTable[key] = val
 
 

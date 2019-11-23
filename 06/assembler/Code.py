@@ -1,6 +1,9 @@
 class Code:
 
     def __init__(self):
+        """
+        sets up the lookup tables
+        """
         self.JumpLookupTable = \
             {
                 None: "000",
@@ -17,6 +20,8 @@ class Code:
             }
         self.CalcLookupTable = \
             {
+                'A>>': '010000000', 'D>>': '010010000', 'A<<': '010100000',
+                'D<<': '010110000', 'M>>': '011000000', 'M<<': '011100000',
                 "0": "0101010", "1": "0111111", "-1": "0111010",
                 "D": "0001100", "A": "0110000", "!D": "0001101",
                 "!A": "0110001", "-D": "0001111", "-A": "0110011",
@@ -30,11 +35,26 @@ class Code:
                 "D|M": "1010101"
             }
 
-    def dest(self,dest):
+    def dest(self, dest):
+        """
+        handles the dest part of command
+        :param dest: destination of the calculation
+        :return: the code for the destination
+        """
         return self.DestLookupTable[dest]
 
-    def jump(self,jmp):
+    def jump(self, jmp):
+        """
+        handles the jump part of the command
+        :param jmp: the condition of the jump
+        :return: the code for that condition
+        """
         return self.JumpLookupTable[jmp]
 
-    def calc(self,clc):
+    def calc(self, clc):
+        """
+        handles the calculation part of the command
+        :param clc: the type of calculation
+        :return: the code for that calculation
+        """
         return self.CalcLookupTable[clc]

@@ -2,6 +2,7 @@
 import Parser
 import Code
 import sys
+import re
 
 SymbolTable = \
     {
@@ -32,6 +33,8 @@ DestLookupTable = \
     }
 CalcLookupTable = \
     {
+        'A>>': '010000000', 'D>>': '010010000', 'A<<': '010100000',
+        'D<<': '010110000', 'M>>': '011000000', 'M<<': '011100000',
         "0": "0101010", "1": "0111111", "-1": "0111010",
         "D": "0001100", "A": "0110000", "!D": "0001101",
         "!A": "0110001", "-D": "0001111", "-A": "0110011",
@@ -47,6 +50,10 @@ CalcLookupTable = \
 
 
 class Assembler:
+    """
+    this class cleans up the assembly file, handles the label. uses the parser and the Code classes to
+    turn assembly into binary
+    """
 
     def __init__(self, inputFileName):
         self._inputFileName = inputFileName
@@ -61,23 +68,44 @@ class Assembler:
 
     # we open the file
     def assemble(self):
+        """
+        the main method, does a first run (to handle labels and variables)
+        and then does a full run to assemble everything
+        :return:
+        """
         self.first_run()
         self.full_run()
 
     def first_run(self):
+        """
+        this method does the first run, cleaning up the file and handling label/variables
+        :return:
+        """
 
         with open(self._inputFileName) as inputFile:
             input_string = inputFile.read()
             inputFile.close()
 
         self.input_list = input_string.split("\n")
+        comment_regex = r"//.*?$"
+        # remove comments
         self.input_list = [line for line in self.input_list if not line.startswith("//") and line is not ""]
+        self.input_list = [re.sub(comment_regex,'',line) for line in self.input_list]
+
+        # remove spaces
+        self.input_list = [re.sub(' ','',line) for line in self.input_list]
+
+        # parse labels
         for counter, line in enumerate(self.input_list):
             if line.startswith("("):
                 self.parser.parse_label(line, counter)
         self.input_list = [line for line in self.input_list if not line.startswith("(")]
 
     def full_run(self):
+        """
+        goes over the lines, parses them, and assembles them using the coder
+        :return:
+        """
 
         with open(self._outputFileName, 'w') as outputFile:
             i = 0
