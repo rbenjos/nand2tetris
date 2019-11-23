@@ -1,0 +1,11 @@
+function Main.main 0
+push pointer 0
+push constant "Howmany numbers? "
+call Keyboard.readInt 2
+pop local 1
+push pointer 0
+push local 1
+call Array.new 2
+pop local 0
+push constant 0
+pop local 2

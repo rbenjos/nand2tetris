@@ -23,14 +23,18 @@ class SymbolTable:
         self.table[i_name] = [i_type, i_kind]
         if i_kind == "VAR":
             self.table[i_name].append(self.var_counter)
+            self.table[i_name][1] = 'local'
             self.var_counter += 1
         elif i_kind == "FIELD":
             self.table[i_name].append(self.field_counter)
+            self.table[i_name][1] = 'local'
             self.field_counter += 1
         elif i_kind == "ARG":
+            self.table[i_name][1] = 'argument'
             self.table[i_name].append(self.arg_counter)
             self.arg_counter += 1
         elif i_kind == "STATIC":
+            self.table[i_name][1] = 'static'
             self.table[i_name].append(self.static_counter)
             self.static_counter += 1
         else:
@@ -92,39 +96,5 @@ class SymbolTable:
         self.field_counter = 0
         self.static_counter = 0
 
-
-
-if __name__ == "__main__":
-    a = SymbolTable()
-    a.define("hi", "b", "VAR")
-    print(a.kindOf("hi"))
-    print(a.typeOf("hi"))
-    print(a.indexOf("hi"))
-
-    a.define("bi", "k", "ARG")
-    print(a.kindOf("bi"))
-    print(a.typeOf("bi"))
-    print(a.indexOf("bi"))
-
-    a.define("yi", "b", "VAR")
-    print(a.kindOf("yi"))
-    print(a.typeOf("yi"))
-    print(a.indexOf("yi"))
-
-    a.define("li", "k", "ARG")
-    print(a.kindOf("li"))
-    print(a.typeOf("li"))
-    print(a.indexOf("li"))
-
-    a.define("pi", "b", "VAR")
-    print(a.kindOf("pi"))
-    print(a.typeOf("pi"))
-    print(a.indexOf("pi"))
-
-    a.define("vi", "k", "ARG")
-    print(a.kindOf("vi"))
-    print(a.typeOf("vi"))
-    print(a.indexOf("vi"))
-
-    print(a.varCount("ARG"))
-    print(a.varCount("STATIC"))
+    def __str__(self):
+        return str(self.table)

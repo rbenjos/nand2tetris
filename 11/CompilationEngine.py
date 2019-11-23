@@ -286,7 +286,6 @@ class CompilationEngine:
         self.compileStatements()
 
         # }
-        # MotherFucker
         self.advance()
 
     def compileVarDec(self):
@@ -310,8 +309,6 @@ class CompilationEngine:
             self.advance()
 
             # type
-            type_of_var = self.token()
-            self.advance()
 
             # name
             name = self.token()
@@ -319,7 +316,6 @@ class CompilationEngine:
 
             self.subRoutineTable.define(name, type_of_var, 'VAR')
 
-            self.advance()
 
         # ;
         if self.tokenizer.has_more_tokens():
@@ -330,7 +326,6 @@ class CompilationEngine:
         compiles all following statements in a loop
         :return:
         """
-
         while self.token() in self.STATEMENTS:
             self.compileStatement()
 
@@ -339,6 +334,7 @@ class CompilationEngine:
         compiles statement based on its keyword
         :return:
         """
+
         if self.token() == 'do':
             self.compileDo()
         elif self.token() == 'let':
@@ -382,41 +378,45 @@ class CompilationEngine:
         index = None
         counter = 0
 
+        if self.subRoutineTable.contains(first_name):
+            seg = self.subRoutineTable.kindOf(first_name)
+            index = self.subRoutineTable.indexOf(first_name)
+
+        elif self.classTable.contains(first_name):
+            seg = self.classTable.kindOf(first_name)
+            index = self.classTable.indexOf(first_name)
+
+        else:
+            seg = 'pointer'
+            index = 0
+
         # handling after the first identifier , advanced after it
 
         # ( or .
         # if .
         full_name = first_name
-        self.advance()
 
         if self.token() == '.':
             full_name += '.'
             # .
-            self.bound(self.token(), 'symbol')
             self.advance()
             # name of subroutine
             second_name = self.token()
             full_name += second_name
-            self.bound(self.token(), 'identifier')
+
             self.advance()
 
+        print(second_name)
         if second_name is not None:
 
-            if self.subRoutineTable.contains(first_name):
-                seg = self.subRoutineTable.kindOf(first_name)
-                index = self.subRoutineTable.indexOf(first_name)
 
-            elif self.classTable.contains(first_name):
-                seg = self.classTable.kindOf(first_name)
-                index = self.classTable.indexOf(first_name)
 
-            else:
-                print("identifier doesn't exist")
 
             self.vm_writer.writePush(seg, index)
             counter += 1
 
         else:
+            print(2)
             full_name = self.class_name + '.' + first_name
             self.vm_writer.writePush('pointer', 0)
             counter += 1
@@ -446,17 +446,20 @@ class CompilationEngine:
 
         isArray = False
 
+        print(self.subRoutineTable)
+        print(self.token())
         # finding identifier in tables
+
         if self.subRoutineTable.contains(self.token()):
             lastLineSeg = self.subRoutineTable.kindOf(self.token())
             lastLineindex = self.subRoutineTable.indexOf(self.token())
+            print(lastLineindex,lastLineSeg)
 
         elif self.classTable.contains(self.token()):
             lastLineSeg = self.classTable.kindOf(self.token())
             lastLineindex = self.classTable.indexOf(self.token())
         else:
             print("identifier doesn't exist")
-
         # might be an array, need to check that
 
         self.advance()
@@ -476,7 +479,9 @@ class CompilationEngine:
             """adding the base address and the expression result"""
             self.advance()
 
-            self.vm_writer.WriteArithmetic("+",False)
+            self.vm_writer.WriteArithmetic("+", False)
+            """poping the result to temp 0 so we will get access to the previous addition result"""
+            self.vm_writer.writePop("temp", 0)
 
         # otherwise its a =
         # then an expression
@@ -485,20 +490,18 @@ class CompilationEngine:
         """calculating the expression"""  # todo-make sure expression leaves the result on the top of the stack
         self.compileExpression()
 
-        """poping the result to temp 0 so we will get access to the previous addition result"""
-        self.vm_writer.writePop("temp", 0)
+
 
         # ;
         """if the value should be put in an array then pop the expression result to that 0"""
 
         if isArray:
             """poping to pointer 1(that) so that 0 will hold the required array cell"""
-            self.vm_writer.writePop("pointer", 1)
             self.vm_writer.writePush("temp", 0)
+            self.vm_writer.writePop("pointer", 1)
             self.vm_writer.writePop("that", 0)
         else:
             """if not then pop the expression result to the given address"""
-            self.vm_writer.writePush("temp", 0)
             self.vm_writer.writePop(lastLineSeg, lastLineindex)
 
     def compileWhile(self):
@@ -646,7 +649,7 @@ class CompilationEngine:
         """
         token_type = self.tokenizer.get_token_type()
         if token_type in self.CONSTANTS:
-            self.vm_writer.writePush('constant',int(self.token()))
+            self.vm_writer.writePush('constant',self.token())
             self.advance()
 
         # expression
@@ -673,6 +676,8 @@ class CompilationEngine:
             lastLineSeg = None
             lastLineindex = None
 
+
+            print(self.token()+'1111111')
             # finding identifier in tables
             if self.subRoutineTable.contains(name):
                 lastLineSeg = self.subRoutineTable.kindOf(name)

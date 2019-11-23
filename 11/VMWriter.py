@@ -33,7 +33,7 @@ class VMWriter:
         :param index: the index in that segment
         :return: nothing
         """
-        self.out('push ' + segment + ' ' + index)
+        self.out('push ' + segment + ' ' + str(index))
 
     def writePop(self, segment, index):
         """
@@ -43,7 +43,7 @@ class VMWriter:
         :param index: the index in the segment
         :return: nothing
         """
-        self.out('pop ' + segment + ' ' + index)
+        self.out('pop ' + segment + ' ' + str(index))
 
 
     def WriteArithmetic(self, command, un):
@@ -90,7 +90,7 @@ class VMWriter:
         :param n_args: the number of arguments it uses
         :return: nothing
         """
-        self.out('call ' + name + ' ' + n_args)
+        self.out('call ' + name + ' ' + str(n_args))
 
     def writeFunction(self, name, n_args):
         """
@@ -99,7 +99,7 @@ class VMWriter:
         :param n_args: the number of arguments it uses
         :return: nothing
         """
-        self.out('function ' + name + ' ' + n_args)
+        self.out('function ' + name + ' ' + str(n_args))
 
     def writeReturn(self):
         """
