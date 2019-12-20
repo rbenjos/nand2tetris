@@ -56,16 +56,13 @@ class Tokenizer:
             file_content = file.read()
 
             # removing jack documentation
-            documentation = "([/][*]{2}.*[*][/])"
-            block_comment = "(/\\*.*\\*/)"
-            one_line_comment = "[/]{2}.*\n"
-            regex = r"(//.*?\n)"
-            regex2 = r"(/\*\*.*?\\*)"
-            regex1 = r"(//.*?$)|(/\*\*.*?\*/)|(/\*.*?\*/)"
 
-            file_content = re.sub(regex, "", file_content, re.DOTALL | re.MULTILINE)
-            file_content = re.sub(regex2, "", file_content, re.DOTALL | re.MULTILINE)
+            one_line = r"(//.*?\n)"
+            block = r"(/[*]{2}.*?[*]{1}/)"
 
+            file_content = re.sub(r"(//.*?\n)", "", file_content, re.DOTALL | re.MULTILINE)
+            file_content = re.sub(r"/\*{2}(.|\n)*?\*/", "", file_content, re.DOTALL)
+            print (file_content)
 
         file.close()
 

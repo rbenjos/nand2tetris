@@ -26,7 +26,10 @@ class Square {
 
         return this;
     }
+    /**
 
+
+    */
     /** Deallocates the object's memory. */
     method void dispose() {
         do Memory.deAlloc(this);

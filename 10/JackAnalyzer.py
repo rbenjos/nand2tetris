@@ -25,7 +25,7 @@ if __name__ == "__main__":
     output_file_path = path+".xml"
     if os.path.isdir(sys.argv[1]):
         for current_file in os.listdir(sys.argv[1]):
-            if current_file.endswith(".txt"):
+            if current_file.endswith(".jack"):
                 analyze_file(current_file)
     else:
         analyze_file(sys.argv[1])

@@ -60,7 +60,7 @@ class CompilationEngine:
         :param ter_type:
         :return:
         """
-        final_phrase = self.startr(ter_type)+ phrase + self.endr(ter_type)
+        final_phrase = self.startr(ter_type)+" "+ phrase+" " + self.endr(ter_type)
         self.out(final_phrase)
 
     def token(self):
@@ -196,7 +196,7 @@ class CompilationEngine:
         self.bound(self.token(), 'symbol')
 
         # parameter list
-        self.tokenizer.advance()
+        self.advance()
         self.compileParameterList()
 
         # )
@@ -217,6 +217,8 @@ class CompilationEngine:
 
         # if there are no parameters, we should go back
         if self.token() == ')':
+            self.start('parameterList')
+            self.end('parameterList')
             return
 
         else:
@@ -248,6 +250,7 @@ class CompilationEngine:
         self.advance()
 
         while self.token() == 'var':
+            self.start('varDec')
             self.bound(self.token(), 'keyword')
             self.advance()
             self.compileVarDec()
@@ -265,6 +268,7 @@ class CompilationEngine:
         with ';'
         :return:
         """
+
         # type
         self.compileType()
 
@@ -282,6 +286,8 @@ class CompilationEngine:
         self.bound(self.token(), 'symbol')
         if self.tokenizer.has_more_tokens():
             self.advance()
+
+        self.end('varDec')
 
     def compileStatements(self):
         """
@@ -362,8 +368,6 @@ class CompilationEngine:
         # )
         self.bound(self.token(), 'symbol')
         self.advance()
-
-        self.end('subroutineCall')
 
     def compileLet(self):
         """
@@ -582,10 +586,11 @@ class CompilationEngine:
         :return:
         """
         self.start('expressionList')
-        self.compileExpression()
-        while self.token() is ',':
-            self.bound(self.token(), 'symbol')
-            self.tokenizer.advance()
+        if self.token() != ')':
             self.compileExpression()
+            while self.token() is ',':
+                self.bound(self.token(), 'symbol')
+                self.tokenizer.advance()
+                self.compileExpression()
 
         self.end('expressionList')
