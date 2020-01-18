@@ -1,0 +1,192 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/String.jack
+
+/**
+ * Represents character strings. In addition for constructing and disposing
+ * strings, the class features methods for getting and setting individual
+ * characters of the string, for erasing the string's last character,
+ * for appending a character to the string's end, and more typical
+ * string-oriented operations.
+ */
+class String {
+
+    field Array s;
+    field int length;
+    field int capacity;
+
+
+    /** constructs a new empty string with a maximum length of maxLength
+     *  and initial length of 0. */
+    constructor String new(int maxLength)
+    {
+        if (maxLength > 0)
+        {
+            let s = Array.new(maxLength);
+        }
+        else
+        {
+            let s = Array.new(1);
+        }
+        let capacity = maxLength
+        let length = 0;
+        return this;
+    }
+
+    /** Disposes this string. */
+    method void dispose()
+    {
+        do Memory.deAlloc(s);
+        return
+    }
+
+    /** Returns the current length of this string. */
+    method int length()
+    {
+        return length;
+    }
+
+    /** Returns the character at the j-th location of this string. */
+    method char charAt(int j)
+    {
+        return s[j];
+    }
+
+    /** Sets the character at the j-th location of this string to c. */
+    method void setCharAt(int j, char c)
+    {
+        let s[j]=c;
+        return;
+    }
+
+    /** Appends c to this string's end and returns this string. */
+    method String appendChar(char c)
+    {
+        if (length < capacity)
+        {
+            let s[length]=c;
+            let length = length +1;
+            return this;
+        }
+        else
+        {
+           return;
+        }
+    }
+
+    /** Erases the last character from this string. */
+    method void eraseLastChar()
+    {
+        if (length>0)
+        {
+            let s[length-1] = 0
+            let length = length-1;
+            return;
+        }
+        else
+        {
+            return;
+        }
+    }
+
+    /** Returns the integer value of this string, 
+     *  until a non-digit character is detected. */
+    method int intValue()
+    {
+        var int value,counter,digit,sign;
+        var bool sign;
+
+        let value = 0;
+        let counter = 0;
+        let negative = 1;
+
+        if (s[counter] = 45)
+        {
+            let negative = -1;
+            let counter = counter +1;
+        }
+
+        while (counter < length)
+        {
+            // if its a digit:
+            if ((47< s[counter]) & (s[counter]<57))
+            {
+                let digit = s[counter];
+                let value = Math.multiply(value,10) +digit;
+                let counter = counter +1;
+            }
+            else
+            {
+                let value = Math.multiply(value,sign);
+                return value;
+            }
+        }
+        let value = Math.multiply(value,sign);
+        return value;
+    }
+
+    /** Sets this string to hold a representation of the given value. */
+    method void setInt(int val)
+    {
+        var Array digits;
+        var int counter,digit,div,size;
+        // first lets initialize
+
+        let length = 0;
+        let counter = 1;
+        let digit = 0;
+        let div = 0;
+
+
+
+
+        if (val < 0)
+        {
+            let val = Math.multiply(-1,val);
+            do appendChar(45);
+            let length = length +1;
+        }
+
+        while ((counter < val) | (counter = val))
+        {
+            let counter = counter +1;
+        }
+
+        let digits = new Array(counter);
+        let size = counter;
+
+        while (counter>-1)
+        {
+            let digit = val-Math.multiply(Math.divide(val,10),10);
+            let digits[counter] = digit;
+        }
+
+        while (counter < size+1)
+        {
+            do appendChar(digits[counter]+48);
+            let counter = counter+1;
+            let length = length+1;
+        }
+       return;
+
+    }
+
+    /** Returns the new line character. */
+    function char newLine()
+    {
+        return 128;
+    }
+
+    /** Returns the backspace character. */
+    function char backSpace() {
+        return 129;
+
+    }
+
+    /** Returns the double quote (") character. */
+    function char doubleQuote() {
+        return 34;
+
+    }
+}
